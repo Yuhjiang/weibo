@@ -7,7 +7,13 @@ import (
 
 func InitRouter() *gin.Engine {
 	router := gin.Default()
-	router.POST("/register", controllers.RegisterUser)
+	userRouter(router)
 
 	return router
+}
+
+func userRouter(router *gin.Engine) {
+	router.POST("/register", controllers.RegisterUser)
+	router.GET("/user", controllers.UserList)
+	router.POST("/user/login", controllers.LoginUser)
 }
