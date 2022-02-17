@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/Yuhjiang/weibo/models"
 	"github.com/Yuhjiang/weibo/utils"
 	"github.com/gin-gonic/gin"
@@ -29,12 +28,6 @@ func RegisterUser(c *gin.Context) {
 }
 
 func UserList(c *gin.Context) {
-	token := c.GetHeader("Authorization")
-	user, err := models.ValidateToken(token)
-	if err != nil {
-		log.Println("token解析失败")
-	}
-	fmt.Println(user)
 	users := models.GetUserList()
 	c.JSON(http.StatusOK, gin.H{"data": users})
 }

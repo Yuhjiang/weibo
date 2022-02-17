@@ -2,11 +2,11 @@ package models
 
 import (
 	"errors"
-	"fmt"
 	orm "github.com/Yuhjiang/weibo/database"
 	"github.com/Yuhjiang/weibo/utils"
 	"github.com/golang-jwt/jwt"
 	"log"
+	"strconv"
 	"time"
 )
 
@@ -17,6 +17,8 @@ type User struct {
 	Status     int       `json:"status"`
 	CreateTime time.Time `json:"createTime" gorm:"autoCreateTime"`
 }
+
+var RedisToken = &orm.RedisStore{Prefix: "auth:token:", DefaultValue: ""}
 
 func (User) TableName() string {
 	return "user"
@@ -74,14 +76,18 @@ func CreateToken(user User) (string, error) {
 		user.Id,
 		user.Username,
 		jwt.StandardClaims{
-			ExpiresAt: time.Now().Unix() + int64(10),
+			ExpiresAt: time.Now().Unix() + int64(7200),
 			Issuer:    "admin",
 		},
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	tokenString, err := token.SignedString(secret)
 	if err != nil {
-		log.Fatal("token生成失败")
+		log.Println("token生成失败")
+	}
+	err = RedisToken.Set(strconv.FormatInt(claims.Id, 10), tokenString, time.Hour*2)
+	if err != nil {
+		log.Println("token存入redis失败")
 	}
 	return tokenString, err
 }
@@ -94,10 +100,14 @@ func ValidateToken(tokenString string) (User, error) {
 		log.Println("token解析失败")
 	}
 	if claims, ok := token.Claims.(*CustomClaims); ok && token.Valid {
-		fmt.Println(claims)
-		return User{Id: claims.Id, Username: claims.Username}, nil
+		rToken := RedisToken.Get(strconv.FormatInt(claims.Id, 10))
+		if rToken != tokenString {
+			// 和缓存中的token不符合，不能使用
+			return User{}, errors.New("token解析错误")
+		} else {
+			return User{Id: claims.Id, Username: claims.Username}, nil
+		}
 	} else {
-		fmt.Println("失败处理")
 		return User{}, errors.New("token解析错误")
 	}
 }
