@@ -3,6 +3,7 @@ package database
 import (
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	"log"
 	"time"
 )
@@ -12,7 +13,9 @@ var DB *gorm.DB
 func init() {
 	dsn := "root:123-zxcvAS@tcp(127.0.0.1:3306)/weibo?charset=utf8mb4&parseTime=True&loc=Local"
 	var err error
-	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	DB, err = gorm.Open(mysql.Open(dsn), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Warn),
+	})
 	if err != nil {
 		log.Fatal("数据库连接失败", err.Error())
 	}
