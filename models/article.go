@@ -64,14 +64,22 @@ func GetArticleList() []ArticleVO {
 	return articles
 }
 
+type PageArticle struct {
+	Data  []ArticleVO `json:"data"`
+	Count int64       `json:"count"`
+}
+
 // PageArticleList 分页查询的文章列表
-func PageArticleList(page, pageSize int) []ArticleVO {
+func PageArticleList(page, pageSize int) PageArticle {
 	var articles []ArticleVO
-	tx := orm.DB.Model(&Article{}).Select(
+	tx := orm.DB.Begin()
+	defer tx.Commit()
+	tx.Model(&Article{}).Select(
 		"article.id, author_id, user.username AS author_name, title, tags, short, " +
 			"article.create_time").Joins(
 		"LEFT JOIN user on user.id = article.author_id").Offset(
 		(page - 1) * pageSize).Limit(pageSize).Find(&articles)
-	println(tx.Statement)
-	return articles
+	var count int64
+	tx.Model(&Article{}).Count(&count)
+	return PageArticle{Data: articles, Count: count}
 }

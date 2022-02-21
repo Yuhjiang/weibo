@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"fmt"
 	"github.com/Yuhjiang/weibo/models"
 	"github.com/Yuhjiang/weibo/utils"
 	"github.com/gin-gonic/gin"
@@ -43,7 +42,6 @@ func GetArticleList(c *gin.Context) {
 	// 分页查询接口，如果没有传递page和size
 	page, _ := strconv.ParseInt(c.Query("page"), 10, 64)
 	size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
-	fmt.Println(page, size)
 	articles := models.PageArticleList(int(page), int(size))
 	c.JSON(http.StatusOK, gin.H{"data": articles})
 }
