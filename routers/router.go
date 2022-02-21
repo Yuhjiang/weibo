@@ -28,4 +28,6 @@ func articleRouter(router *gin.Engine) {
 
 	auth := router.Group("/article", middleware.JWTAuth())
 	auth.POST("", controllers.CreateArticle)
+	auth.PUT("/:id", controllers.UpdateArticle)
+	auth.DELETE("/:id", controllers.DeleteArticle)
 }

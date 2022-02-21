@@ -2,6 +2,7 @@ package models
 
 import (
 	orm "github.com/Yuhjiang/weibo/database"
+	"gorm.io/gorm"
 	"time"
 )
 
@@ -82,4 +83,42 @@ func PageArticleList(page, pageSize int) PageArticle {
 	var count int64
 	tx.Model(&Article{}).Count(&count)
 	return PageArticle{Data: articles, Count: count}
+}
+
+// UpdateArticle 更新文章内容，不涉及主键和关联外键的修改
+func UpdateArticle(article *Article) error {
+	err := orm.DB.Transaction(func(tx *gorm.DB) error {
+		// 需要增加条件判断文章是否是这个用户所写
+		t := tx.Model(article).Omit("Id", "AuthorId", "CreateTime", "Detail").Where(
+			"author_id = ?", article.AuthorId).Updates(article)
+		if t.Error != nil {
+			return t.Error
+		}
+		if t.RowsAffected == 0 {
+			return nil
+		}
+		err := tx.Model(&article.Detail).Select("Content").Where(
+			"article_id = ?", article.Id).Updates(&article.Detail).Error
+		if err != nil {
+			return err
+		}
+		return nil
+	})
+	return err
+}
+
+// DeleteArticleById 根据文章id删除文章和文章详情
+func DeleteArticleById(id int64) error {
+	err := orm.DB.Debug().Transaction(func(tx *gorm.DB) error {
+		e := tx.Where("article_id = ?", id).Delete(&ArticleDetail{}).Error
+		if e != nil {
+			return e
+		}
+		e = tx.Delete(&Article{}, id).Error
+		if e != nil {
+			return e
+		}
+		return nil
+	})
+	return err
 }

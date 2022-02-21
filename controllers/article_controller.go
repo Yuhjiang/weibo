@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"github.com/Yuhjiang/weibo/middleware"
 	"github.com/Yuhjiang/weibo/models"
 	"github.com/Yuhjiang/weibo/utils"
 	"github.com/gin-gonic/gin"
@@ -9,8 +10,7 @@ import (
 )
 
 func CreateArticle(c *gin.Context) {
-	vUser, _ := c.Get("user")
-	user := vUser.(models.User)
+	user, _ := middleware.GetCurrentUser(c)
 	article := models.Article{AuthorId: user.Id}
 	err := c.ShouldBind(&article)
 	if err != nil {
@@ -44,4 +44,39 @@ func GetArticleList(c *gin.Context) {
 	size, _ := strconv.ParseInt(c.Query("size"), 10, 64)
 	articles := models.PageArticleList(int(page), int(size))
 	c.JSON(http.StatusOK, gin.H{"data": articles})
+}
+
+func UpdateArticle(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
+		return
+	}
+	user, _ := middleware.GetCurrentUser(c)
+	article := models.Article{Id: id, AuthorId: user.Id}
+	err = c.ShouldBind(&article)
+	if err != nil {
+		utils.ValidateErrorResp(c, err)
+		return
+	}
+	err = models.UpdateArticle(&article)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "更新失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"msg": "更新成功"})
+}
+
+func DeleteArticle(c *gin.Context) {
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"msg": "not found"})
+		return
+	}
+	err = models.DeleteArticleById(id)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"msg": "删除失败"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"msg": "删除成功"})
 }

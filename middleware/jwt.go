@@ -26,3 +26,17 @@ func JWTAuth() gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func GetCurrentUser(c *gin.Context) (models.User, bool) {
+	var user models.User
+	vUser, exist := c.Get("user")
+	if !exist {
+		return user, exist
+	}
+	user, ok := vUser.(models.User)
+	if !ok {
+		return user, ok
+	} else {
+		return user, true
+	}
+}
