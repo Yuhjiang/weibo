@@ -71,17 +71,21 @@ type PageArticle struct {
 }
 
 // PageArticleList 分页查询的文章列表
-func PageArticleList(page, pageSize int) PageArticle {
+func PageArticleList(page, pageSize int, tag string) PageArticle {
 	var articles []ArticleVO
 	tx := orm.DB.Begin()
 	defer tx.Commit()
-	tx.Model(&Article{}).Select(
+	t := tx.Model(&Article{}).Select(
 		"article.id, author_id, user.username AS author_name, title, tags, short, " +
 			"article.create_time").Joins(
 		"LEFT JOIN user on user.id = article.author_id").Offset(
-		(page - 1) * pageSize).Limit(pageSize).Find(&articles)
+		(page - 1) * pageSize).Limit(pageSize)
+	if tag != "" {
+		t = t.Where("tags = ?", tag)
+	}
+	t.Find(&articles)
 	var count int64
-	tx.Model(&Article{}).Count(&count)
+	t.Count(&count)
 	return PageArticle{Data: articles, Count: count}
 }
 
@@ -108,17 +112,28 @@ func UpdateArticle(article *Article) error {
 }
 
 // DeleteArticleById 根据文章id删除文章和文章详情
-func DeleteArticleById(id int64) error {
+func DeleteArticleById(id, authorId int64) error {
 	err := orm.DB.Debug().Transaction(func(tx *gorm.DB) error {
 		e := tx.Where("article_id = ?", id).Delete(&ArticleDetail{}).Error
 		if e != nil {
 			return e
 		}
-		e = tx.Delete(&Article{}, id).Error
+		e = tx.Where("author_id = ?", authorId).Delete(&Article{}, id).Error
 		if e != nil {
 			return e
 		}
 		return nil
 	})
 	return err
+}
+
+type ArticleTagVO struct {
+	Tags  string `json:"tags"`
+	Count int64  `json:"count"`
+}
+
+func QueryArticleTagsCount() []ArticleTagVO {
+	var tagsVo []ArticleTagVO
+	orm.DB.Model(&Article{}).Select("tags, COUNT(*) AS count").Group("tags").Scan(&tagsVo)
+	return tagsVo
 }

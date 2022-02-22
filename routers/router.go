@@ -10,6 +10,7 @@ func InitRouter() *gin.Engine {
 	router := gin.Default()
 	userRouter(router)
 	articleRouter(router)
+	albumRouter(router)
 
 	return router
 }
@@ -25,9 +26,17 @@ func userRouter(router *gin.Engine) {
 func articleRouter(router *gin.Engine) {
 	router.GET("/article/:id", controllers.GetArticleById)
 	router.GET("/article", controllers.GetArticleList)
+	router.GET("/article/tag-dist", controllers.QueryArticleTags)
 
 	auth := router.Group("/article", middleware.JWTAuth())
 	auth.POST("", controllers.CreateArticle)
 	auth.PUT("/:id", controllers.UpdateArticle)
 	auth.DELETE("/:id", controllers.DeleteArticle)
+}
+
+func albumRouter(router *gin.Engine) {
+	album := router.Group("/album")
+
+	album.POST("", controllers.UploadAlbum)
+	album.GET("", controllers.GetAlbumList)
 }
